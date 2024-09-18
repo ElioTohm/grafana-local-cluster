@@ -1,0 +1,39 @@
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: mimir
+      type: prometheus
+      url: http://mimir-nginx.mimir/prometheus
+      access: proxy
+      isDefault: true
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki-gateway.loki
+    - name: Tempo
+      type: tempo
+      url: http://tempo-query-frontend.tempo:3100
+      access: proxy
+      basicAuth: false
+      jsonData:
+        serviceMap:
+          datasourceUid: 'mimir'
+        tracesToLogsV2:
+          # Field with an internal link pointing to a logs data source in Grafana.
+          # datasourceUid value must match the uid value of the logs data source.
+          datasourceUid: 'loki'
+            #tags: ['job', 'instance', 'pod', 'namespace']
+            #filterByTraceID: false
+            #filterBySpanID: false
+            #customQuery: true
+            #query: 'method="$${__span.tags.method}"'
+        tracesToMetrics:
+          datasourceUid: 'mimir'
+            #spanStartTimeShift: '1h'
+            #spanEndTimeShift: '-1h'
+            #tags: [{ key: 'service.name', value: 'service' }, { key: 'job' }]
+            #queries:
+            #- name: 'Sample query'
+             # query: 'sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'

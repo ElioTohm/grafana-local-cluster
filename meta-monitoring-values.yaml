@@ -1,0 +1,11 @@
+cloud:
+  logs:
+    enabled: false
+  metrics:
+    enabled: false
+  traces:
+    enabled: false
+
+loki:
+  tracing:
+    enabled: true

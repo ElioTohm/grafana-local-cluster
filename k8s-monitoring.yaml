@@ -1,0 +1,58 @@
+cluster:
+  name: shared
+
+externalServices:
+  prometheus:
+    host: http://mimir-nginx.mimir
+    queryEndpoint: /prometheus
+    writeEndpoint: /api/v1/push
+    authMode: none
+  loki:
+    host: http://loki-gateway.loki
+    queryEndpoint: /
+    writeEndpoint: /loki/api/v1/push
+  tempo:
+    host: http://tempo-ingester.tempo:3100
+
+metrics:
+  scrapeInterval: 2m
+  kube-state-metrics:
+    scrapeInterval: 1m
+  node-exporter:
+    scrapeInterval: 2m
+  alloyModules:
+    connections:
+      - alias: grafana
+        repository: https://github.com/grafana/alloy-modules.git
+        revision: main
+        pull_frequency: 15m
+        default: true
+    modules:
+      - name: loki
+        path: modules/databases/timeseries/loki/metrics.alloy
+      - name: mimir
+        path: modules/databases/timeseries/mimir/metrics.alloy
+      - name: tempo
+        path: modules/databases/timeseries/tempo/metrics.alloy
+      - name: grafana
+        path: modules/ui/grafana/metrics.alloy
+
+traces:
+  enabled: true
+  receiver:
+    filters:
+      span:
+        - attributes["http.route"] == "/live"
+        - attributes["http.route"] == "/healthy"
+        - attributes["http.route"] == "/ready"
+    transforms:
+      resource:
+        - limit(attributes, 100, [])
+        - truncate_all(attributes, 4096)
+      span:
+        - limit(attributes, 100, [])
+        - truncate_all(attributes, 4096)
+
+opencost:
+  enabled: false
+

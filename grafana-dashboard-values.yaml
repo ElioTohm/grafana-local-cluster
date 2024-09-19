@@ -12,28 +12,43 @@ datasources:
       uid: loki
       access: proxy
       url: http://loki-gateway.loki
-    - name: Tempo
-      type: tempo
-      url: http://tempo-query-frontend.tempo:3100
-      access: proxy
-      basicAuth: false
-      jsonData:
-        serviceMap:
-          datasourceUid: 'mimir'
-        tracesToLogsV2:
-          # Field with an internal link pointing to a logs data source in Grafana.
-          # datasourceUid value must match the uid value of the logs data source.
-          datasourceUid: 'loki'
-            #tags: ['job', 'instance', 'pod', 'namespace']
-            #filterByTraceID: false
-            #filterBySpanID: false
-            #customQuery: true
-            #query: 'method="$${__span.tags.method}"'
-        tracesToMetrics:
-          datasourceUid: 'mimir'
-            #spanStartTimeShift: '1h'
-            #spanEndTimeShift: '-1h'
-            #tags: [{ key: 'service.name', value: 'service' }, { key: 'job' }]
-            #queries:
-            #- name: 'Sample query'
-             # query: 'sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "grafana_session"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+  hosts:
+    - gdash.localhost
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPU: "70"
+
+grafana.ini:
+  server:
+    root_url: http://gdash.localhost
+  database:
+    type: postgres
+    host: postgresql-ha-pgpool:5432
+    name: postgres
+    user: postgres
+    password: $__env{POSTGRESQL_PASSWORD}
+
+  remote_cache:
+    type: redis
+    connstr: addr=redis-cluster:6379
+  live:
+    ha_engine: redis
+    ha_engine_address: redis-cluster:6379
+
+envValueFrom:
+  POSTGRESQL_PASSWORD:
+    secretKeyRef:
+      name: postgresql-ha-postgresql
+      key: password
+
